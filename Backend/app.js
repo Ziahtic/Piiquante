@@ -1,33 +1,58 @@
 //module express - codage plus rapide et simplifié
 const express =require ('express');
 
-//déclaration de la constante express
-const app = express();
-
-// module de sécurité 'http' pour l'app.helmet (installe des http headers différents)
+// Installation du module Helmet pour prévenir les failles sécurités
 const helmet = require('helmet');
-app.use(helmet()); // -> utilisation de helmet pour la sécurité
+
+//Installation du module bodyparse
+const bodyParser = require('body-parser');
+
+//Installation du module morgan -> suivi des requêtes
+const morgan = require('morgan');
+
+// Installation du module CORS /Partage des Ressources entre Origines Multiples
+const cors = require("cors");
+
+const dotenv = require("dotenv");
+dotenv.config();
 
 //Installation du module Mongoose
 const mongoose = require('mongoose');
 
 
-
 //Chemin d'accès vers les images
 const path = require('path');
 
-//rappatriation des routes "users" et "sauces"
-const userRoutes = require('./routes/auth'); 
+// Importation du module "express-mongo-sanitize" -> prévention des attaques par injection de code dans les "form"
+const mongoSanitize = require("express-mongo-sanitize");
+
+//rappatriation des routes "user" et "sauces"
+const userRoutes = require('./routes/user'); 
 const sauceRoutes = require('./routes/sauces');
+
+//déclaration de la constante express
+const app = express();
+
+// Déclaration variable d'environnement de connection
+const MONGODB_URI = process.env.MONGODB_URI
+;
 
 // connection à la data base MongoDB Atlas
 mongoose
-.connect(process.env.DB_MONGODB, //->cacher les données
-    {useNewUrlParser: true,
+.connect(MONGODB_URI, {
+    useNewUrlParser: true,
     useUnifiedTopology: true,
-})
+  })
 .then(() => console.log("Connexion à MongoDB réussie !"))
 .catch(() => console.log("Connexion à MongoDB échouée !"));
+
+// Configuration "express-mongo-sanitze" (allowDots et replaceWith en globale)
+app.use(
+    mongoSanitize({
+      allowDots: true,
+      replaceWith: "_",
+    })
+  );
 
 // Cross-Origin Resource Sharing ou Partage des Ressources - accès au front - lien entre les 2 serveurs grâce aux autorisations ci-dessous
 app.use((req, res, next) => {
