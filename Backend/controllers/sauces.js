@@ -62,31 +62,60 @@ exports.modifySauce = (req, res, next) => {
   } : { ...req.body }; // -> si  la requête est fausse et n'existe pas, on reprend juste l'ensemble de ce qu'envoi le front sans parser
 
   Sauce.updateOne({ _id: req.params.id }, { ...sauceObject, _id: req.params.id }) // -> 1er paramètre et 2nd paramétre avec les nouvelles données à enregistrer dans la base de donée
-  .then(() => res.status(200).json({ message : 'Objet modifié !'}))
-  .catch(error => res.status(400).json({ error }));
+  Sauce.findOne({ _id: req.params.id })
+    .then((sauce) => {
+      console.log(" => userId de la sauce = " + sauce.userId);
+      console.log("   => userId de la req = " + req.auth.userId);
+      if (sauce.userId != req.auth.userId) {
+        // si Id est != de l'id du token => erreur 403 "unauthorized request"
+        console.log("differents userId !!!");
+        res.status(403).json({ message: "unauthorized request" });
+      } else {
+        // méthode updateOne pour modifier avec 2 arguments =>
+        // le 1er = _id de comparaison à modifier, le 2ème = la nouvelle version de l'objet avec le même _id
+        Sauce.updateOne(
+          { _id: req.params.id },
+          { ...sauceObject, _id: req.params.id }
+        )
+          .then(() => res.status(200).json({ message: "Sauce modifiée !" }))
+          // error 401 pour dire que l'objet n'est pas trouvé
+          .catch((error) => res.status(401).json({ error }));
+      }
+    })
+    .catch((error) => res.status(400).json({ error })); // si l'ojet ne lui appartient pas
 };
 
 // Suppression d'une sauce
 exports.deleteSauce = (req, res, next) => {
   Sauce.findOne({ _id: req.params.id }) // -> on cherche l'id qui correspond à celui qu'on veut supprimé (envoyé par la requête front)
-
-  .then(sauce => { // -> il nous renvoie la sauce en question à surpprimer
+  .then((sauce) => {
+    console.log(" => userId de la sauce = " + sauce.userId);
+    console.log("   => userId de la req = " + req.auth.userId);
+    if (sauce.userId != req.auth.userId) {
+      // on compare le 'userId' avec celui du token
+      // si la comparaison n'es pas bonne => error 403
+      console.log("differents userId !!!");
+      res.status(403).json({ message: "unauthorized request" });
+    }
+   else {
     const filename = sauce.imageUrl.split('/images/')[1]; // -> récupération du nom,on split la chaine de caractères au niveau de images puis on prend la 2nd valeur
 
     fs.unlink(`images/${filename}`, () => { // -> utilisation de la fonciton de fs 'unlike' pour supprimer un fichier ( prend en guise de paramétre le dossier et le nom de l'image)
       Sauce.deleteOne({ _id: req.params.id }) // -> dans callback de fs.unlike ( supression de l'image fait, supression du reste des info de la sauce
 
-      .then(() => res.status(200).json({ message: 'Objet supprimé !'}))
+      .then(() => res.status(200).json({ message: 'Sauce supprimée !'}))
       .catch(error => res.status(400).json({ error }));
     });
+  } 
   })
+
   .catch(error => res.status(500).json({ error }));
 };
 
 // Modification de la sauce
 exports.setStatut = (req, res, next) => {
   const like = req.body.like; // -> aucune image à traiter
-  const userId = req.body.userId;
+  const userId = req.userId;
   // récupération des éléments envoyés par le front lors de la requête
 
   Sauce.findOne({ _id: req.params.id }) // parametre de recherche de l'objet
