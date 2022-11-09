@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const sauceSchema = mongoose.Schema({
-    //_id: { type: String, required: true }, // pas nécessaire puisque automatiquement généré par mongoose
+    //_id: { type: String, required: true }, // générer par mongoose donc non nécessaire
     userId: { type: String, required: true },
     manufacturer: { type: String, required: true },
     name: { type: String, required: true },
